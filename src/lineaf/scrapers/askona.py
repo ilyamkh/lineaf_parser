@@ -82,9 +82,18 @@ def parse_askona_product_json(data: dict, url: str) -> dict:
 
     # Extract prices (integers in JSON -> Decimal)
     price_raw = pd.get("price")
-    old_price_raw = pd.get("oldPrice")
     price_sale = Decimal(str(price_raw)) if price_raw else None
-    price_original = Decimal(str(old_price_raw)) if old_price_raw else None
+
+    # oldPrice is NOT in JSON — try to compute from discount percentage
+    discount_raw = pd.get("discount")
+    old_price_raw = pd.get("oldPrice")
+    if old_price_raw:
+        price_original = Decimal(str(old_price_raw))
+    elif discount_raw and price_raw and int(discount_raw) > 0:
+        # discount is percentage: oldPrice = price / (1 - discount/100)
+        price_original = (Decimal(str(price_raw)) * 100 / (100 - int(discount_raw))).quantize(Decimal("1"))
+    else:
+        price_original = None
 
     return {
         "source_site": "askona",
@@ -107,9 +116,15 @@ def _extract_next_data(content: str) -> dict | None:
 class AskonaScraper(BaseScraper):
     """Scraper for askona.ru 160x200 mattresses.
 
-    Uses __NEXT_DATA__ JSON embedded in SSR pages for data extraction.
+    Uses Playwright Chromium (not Camoufox) because Askona's Next.js React
+    components only hydrate properly in Chrome — Firefox/Camoufox headless
+    doesn't render dynamic price elements (old_price, new_price).
+
+    Uses __NEXT_DATA__ JSON for product data + DOM for old price extraction.
     Catalog pagination via ?page=N query parameter.
     """
+
+    browser_engine = "chromium"
 
     def __init__(self) -> None:
         super().__init__(
@@ -181,6 +196,17 @@ class AskonaScraper(BaseScraper):
                 "price_original": None,
             }
 
+        # Try to extract old price from DOM (not in __NEXT_DATA__ JSON)
+        dom_old_price = None
+        try:
+            el = await page.query_selector('[data-test-card="old_price"]')
+            if el:
+                text = await el.inner_text()
+                from lineaf.scrapers.utils import parse_price
+                dom_old_price = parse_price(text)
+        except Exception:
+            pass
+
         try:
             result = parse_askona_product_json(data, url)
         except (KeyError, TypeError) as e:
@@ -188,21 +214,24 @@ class AskonaScraper(BaseScraper):
                 "askona: failed to parse product JSON for %s: %s", url, e
             )
             # Attempt minimal extraction
-            pd = data.get("props", {}).get("pageProps", {}).get("productData", {})
-            price_raw = pd.get("price")
-            old_price_raw = pd.get("oldPrice")
+            pd_ = data.get("props", {}).get("pageProps", {}).get("productData", {})
+            price_raw = pd_.get("price")
             result = {
                 "source_site": "askona",
                 "source_url": url,
-                "name": pd.get("name", ""),
+                "name": pd_.get("name", ""),
                 "firmness": None,
                 "height_cm": None,
                 "filler": None,
                 "cover_material": None,
                 "weight_kg": None,
                 "price_sale": Decimal(str(price_raw)) if price_raw else None,
-                "price_original": Decimal(str(old_price_raw)) if old_price_raw else None,
+                "price_original": None,
             }
+
+        # Use DOM old price as primary source (more accurate than JSON discount calc)
+        if dom_old_price is not None:
+            result["price_original"] = dom_old_price
 
         await self.delay()
         return result

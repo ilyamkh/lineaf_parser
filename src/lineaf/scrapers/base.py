@@ -8,7 +8,10 @@ import logging
 import random
 from datetime import datetime, timezone
 
+from contextlib import asynccontextmanager
+
 from camoufox.async_api import AsyncCamoufox
+from playwright.async_api import async_playwright
 
 from lineaf.database import SessionLocal
 from lineaf.models.scrape_run import ScrapeRun
@@ -30,9 +33,32 @@ class BaseScraper(abc.ABC):
         - extract_product(page, url) -> dict
     """
 
+    # Browser engine: "camoufox" (Firefox) or "chromium" (Playwright Chromium)
+    browser_engine: str = "camoufox"
+
     def __init__(self, site_name: str, catalog_url: str) -> None:
         self.site_name = site_name
         self.catalog_url = catalog_url
+
+    @asynccontextmanager
+    async def _launch_browser(self):
+        """Launch browser based on engine preference."""
+        if self.browser_engine == "chromium":
+            async with async_playwright() as p:
+                browser = await p.chromium.launch(headless=False)
+                page = await browser.new_page()
+                try:
+                    yield page
+                finally:
+                    await page.close()
+                    await browser.close()
+        else:
+            async with AsyncCamoufox(headless=True) as browser:
+                page = await browser.new_page()
+                try:
+                    yield page
+                finally:
+                    await page.close()
 
     async def run(self) -> None:
         """Orchestrate a full scrape run: browser -> collect -> extract -> pipeline."""
@@ -51,9 +77,7 @@ class BaseScraper(abc.ABC):
         scraped_urls: set[str] = set()
 
         try:
-            async with AsyncCamoufox(headless=True) as browser:
-                page = await browser.new_page()
-
+            async with self._launch_browser() as page:
                 # Stage 1: collect product URLs from catalog
                 product_urls = await self.collect_product_urls(page)
                 logger.info(
@@ -120,8 +144,6 @@ class BaseScraper(abc.ABC):
                         )
                         db.rollback()
                         continue
-
-                await page.close()
 
             # Mark removed products (only if we found at least 1)
             if products_found > 0:
