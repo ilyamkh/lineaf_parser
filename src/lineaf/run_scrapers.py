@@ -12,7 +12,7 @@ logger = logging.getLogger("lineaf.scrapers")
 # Registry of available spider classes (lazy imports to avoid circular deps)
 SPIDER_REGISTRY: dict[str, str] = {
     "askona": "lineaf.scrapers.askona.AskonaScraper",
-    "ormatek": "lineaf.scrapers.ormatek.OrmateKScraper",
+    "ormatek": "lineaf.scrapers.ormatek.OrmatemScraper",
     "sonum": "lineaf.scrapers.sonum.SonumScraper",
 }
 
