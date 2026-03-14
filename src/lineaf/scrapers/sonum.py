@@ -67,8 +67,7 @@ class SonumScraper(BaseScraper):
     """Scraper for sonum.ru mattress catalog (160x200 size filter).
 
     Uses Bitrix CMS PAGEN_1 pagination parameter to iterate catalog pages.
-    Extracts product data from server-rendered HTML using CSS selectors
-    with multiple fallback strategies.
+    Extracts product data from server-rendered HTML using CSS selectors.
     """
 
     def __init__(self) -> None:
@@ -79,6 +78,23 @@ class SonumScraper(BaseScraper):
                 "?filter%5Bwidth%5D%5B0%5D=160&filter%5Blength%5D%5B0%5D=200"
             ),
         )
+        self._city_dismissed = False
+
+    async def _dismiss_city_modal(self, page) -> None:
+        """Dismiss the 'Ваш город — Москва?' modal if present."""
+        if self._city_dismissed:
+            return
+        try:
+            confirm = await page.query_selector("a.modal-has-delete__delete")
+            if confirm:
+                text = await confirm.inner_text()
+                if "да" in text.lower():
+                    await confirm.click()
+                    await page.wait_for_timeout(1000)
+                    self._city_dismissed = True
+                    logger.info("sonum: dismissed city modal")
+        except Exception:
+            pass
 
     async def collect_product_urls(self, page) -> list[str]:
         """Collect all product URLs from catalog pages using PAGEN_1 pagination.
@@ -89,18 +105,21 @@ class SonumScraper(BaseScraper):
         all_urls: list[str] = []
         seen: set[str] = set()
         page_num = 1
+        empty_pages = 0  # consecutive pages with 0 new URLs
 
         # CSS selectors for product card links, tried in order
+        # Use specific selectors from working notebook
         card_selectors = [
+            "a.card-product__title",
             ".catalog-item a[href]",
             ".product-card a[href]",
-            'a[href*="/catalog/matrasy/"]',
         ]
 
         while True:
             # Build paginated URL
             paginated_url = f"{self.catalog_url}&PAGEN_1={page_num}"
             await self.goto_with_retry(page, paginated_url)
+            await self._dismiss_city_modal(page)
 
             # Try each selector to find product links
             product_links = []
@@ -149,6 +168,18 @@ class SonumScraper(BaseScraper):
                 len(all_urls),
             )
 
+            if page_urls_count == 0:
+                empty_pages += 1
+                if empty_pages >= 2:
+                    logger.info(
+                        "%s: %d consecutive empty pages, stopping pagination",
+                        self.site_name,
+                        empty_pages,
+                    )
+                    break
+            else:
+                empty_pages = 0
+
             page_num += 1
             await self.delay()
 
@@ -160,83 +191,73 @@ class SonumScraper(BaseScraper):
         Extracts name, prices, and characteristics from server-rendered HTML.
         Falls back to description text for filler field.
         """
-        await self.goto_with_retry(page, url)
+        # Note: page navigation already done by BaseScraper.run()
+        await self._dismiss_city_modal(page)
 
-        # --- Name ---
+        # --- Name (from working notebook: h1.product-detail-card__title) ---
         name = None
-        h1 = await page.query_selector("h1")
-        if h1:
-            name = await h1.inner_text()
-            name = name.strip() if name else None
-        if not name:
-            logger.warning("%s: h1 not found for %s, trying title", self.site_name, url)
-            name = await page.title()
-            name = name.strip() if name else None
+        name_el = await page.query_selector("h1.product-detail-card__title")
+        if not name_el:
+            name_el = await page.query_selector("h1")
+        if name_el:
+            name = (await name_el.inner_text()).strip()
 
-        # --- Prices ---
+        # --- Prices (from working notebook: specific Sonum selectors) ---
         price_sale = None
         price_original = None
 
-        # Try multiple selectors for price elements
-        price_selectors = [
-            ".product-price",
-            ".price",
-            "[class*='price']",
-        ]
-        price_texts: list[str] = []
-        for selector in price_selectors:
-            elements = await page.query_selector_all(selector)
-            if elements:
+        # Current price
+        sale_el = await page.query_selector(
+            "div.product-detail-card__current-price span[class*='js-price-current']"
+        )
+        if sale_el:
+            text = await sale_el.inner_text()
+            price_sale = parse_price(text)
+
+        # Old price
+        old_el = await page.query_selector(
+            "div.product-detail-card__old-price span[class*='js-old-price-current']"
+        )
+        if old_el:
+            text = await old_el.inner_text()
+            price_original = parse_price(text)
+
+        # Fallback: scan for any price-like elements
+        if price_sale is None:
+            for selector in [".product-price", "[class*='price']"]:
+                elements = await page.query_selector_all(selector)
                 for el in elements:
                     text = await el.inner_text()
-                    if text and ("₽" in text or re.search(r"\d", text)):
-                        price_texts.append(text.strip())
-                if price_texts:
+                    p = parse_price(text)
+                    if p and p > 0:
+                        price_sale = p
+                        break
+                if price_sale:
                     break
 
-        # If no price elements found via selectors, try scanning page for price-like text
-        if not price_texts:
-            # Look for any element containing the ruble sign
-            rub_elements = await page.query_selector_all("span")
-            for el in rub_elements:
-                text = await el.inner_text()
-                if text and "₽" in text:
-                    price_texts.append(text.strip())
+        if not price_sale:
+            logger.warning("%s: no prices found for %s", self.site_name, url)
 
-        # Parse collected price texts
-        parsed_prices = []
-        for text in price_texts:
-            p = parse_price(text)
-            if p is not None and p > 0:
-                parsed_prices.append(p)
-
-        # Deduplicate and sort
-        parsed_prices = sorted(set(parsed_prices))
-
-        if len(parsed_prices) >= 2:
-            # Lower is sale, higher is original
-            price_sale = parsed_prices[0]
-            price_original = parsed_prices[-1]
-        elif len(parsed_prices) == 1:
-            price_sale = parsed_prices[0]
-        else:
-            logger.warning(
-                "%s: no prices found for %s", self.site_name, url
-            )
-
-        # --- Characteristics table ---
-        char_selectors = [
-            ".product-chars table tr",
-            ".product-info table tr",
-            "table.chars tr",
-            ".characteristics tr",
-            "table tr",
-        ]
-
+        # --- Characteristics (from working notebook: div#characteristic) ---
         rows: list[tuple[str, str]] = []
-        for selector in char_selectors:
-            tr_elements = await page.query_selector_all(selector)
-            if tr_elements:
+
+        # Primary: Sonum's characteristic table
+        char_rows = await page.query_selector_all(
+            "div#characteristic div.table-characteristic__row"
+        )
+        if char_rows:
+            for row_el in char_rows:
+                cols = await row_el.query_selector_all("div.table-characteristic__col")
+                if len(cols) >= 2:
+                    label = await cols[0].inner_text()
+                    value = await cols[1].inner_text()
+                    if label and value:
+                        rows.append((label.strip(), value.strip()))
+
+        # Fallback: generic table
+        if not rows:
+            for selector in ["table tr", ".characteristics tr"]:
+                tr_elements = await page.query_selector_all(selector)
                 for tr in tr_elements:
                     cells = await tr.query_selector_all("td")
                     if len(cells) >= 2:
@@ -246,17 +267,6 @@ class SonumScraper(BaseScraper):
                             rows.append((label.strip(), value.strip()))
                 if rows:
                     break
-
-        # Also try dl/dt/dd structure
-        if not rows:
-            dt_elements = await page.query_selector_all("dt")
-            dd_elements = await page.query_selector_all("dd")
-            if dt_elements and dd_elements:
-                for dt, dd in zip(dt_elements, dd_elements):
-                    label = await dt.inner_text()
-                    value = await dd.inner_text()
-                    if label and value:
-                        rows.append((label.strip(), value.strip()))
 
         chars = parse_characteristics(rows)
 
@@ -273,7 +283,7 @@ class SonumScraper(BaseScraper):
             page_text = await page.inner_text("body")
             filler = extract_filler_from_description(page_text or "")
 
-        await self.delay()
+        # Note: delay is handled by BaseScraper.run() after each product
 
         return {
             "source_site": self.site_name,

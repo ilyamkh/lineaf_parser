@@ -233,5 +233,5 @@ class AskonaScraper(BaseScraper):
         if dom_old_price is not None:
             result["price_original"] = dom_old_price
 
-        await self.delay()
+        # Note: delay is handled by BaseScraper.run() after each product
         return result
