@@ -12,7 +12,7 @@ Three phases follow the hard dependency chain dictated by the architecture: the 
 
 Decimal phases appear between their surrounding integers in numeric order.
 
-- [ ] **Phase 1: Foundation** - Project scaffold, PostgreSQL schema, dev environment
+- [x] **Phase 1: Foundation** - Project scaffold, PostgreSQL schema, dev environment (completed 2026-03-14)
 - [ ] **Phase 2: Scrapers** - Playwright spiders for all three sites, full data collection pipeline
 - [ ] **Phase 3: Dashboard** - FastAPI backend, Streamlit dashboard, scheduling, deployment
 
@@ -75,6 +75,6 @@ Phases execute in numeric order: 1 → 2 → 3
 
 | Phase | Plans Complete | Status | Completed |
 |-------|----------------|--------|-----------|
-| 1. Foundation | 1/2 | In Progress|  |
+| 1. Foundation | 2/2 | Complete   | 2026-03-14 |
 | 2. Scrapers | 0/4 | Not started | - |
 | 3. Dashboard | 0/3 | Not started | - |
