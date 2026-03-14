@@ -19,10 +19,10 @@ Requirements for initial release. Each maps to roadmap phases.
 
 ### Storage
 
-- [ ] **STOR-01**: БД хранит каталог продуктов с дедупликацией (таблица products)
-- [ ] **STOR-02**: БД хранит историю снапшотов цен с привязкой к дате сбора (таблица price_snapshots)
-- [ ] **STOR-03**: БД хранит лог запусков парсера с результатами (таблица scrape_runs)
-- [ ] **STOR-04**: Схема БД поддерживает отслеживание статуса активности товара (is_active)
+- [x] **STOR-01**: БД хранит каталог продуктов с дедупликацией (таблица products)
+- [x] **STOR-02**: БД хранит историю снапшотов цен с привязкой к дате сбора (таблица price_snapshots)
+- [x] **STOR-03**: БД хранит лог запусков парсера с результатами (таблица scrape_runs)
+- [x] **STOR-04**: Схема БД поддерживает отслеживание статуса активности товара (is_active)
 
 ### Dashboard
 
@@ -73,10 +73,10 @@ Deferred to future release. Tracked but not in current roadmap.
 
 | Requirement | Phase | Status |
 |-------------|-------|--------|
-| STOR-01 | Phase 1 | Pending |
-| STOR-02 | Phase 1 | Pending |
-| STOR-03 | Phase 1 | Pending |
-| STOR-04 | Phase 1 | Pending |
+| STOR-01 | Phase 1 | Complete |
+| STOR-02 | Phase 1 | Complete |
+| STOR-03 | Phase 1 | Complete |
+| STOR-04 | Phase 1 | Complete |
 | SCRP-01 | Phase 2 | Pending |
 | SCRP-02 | Phase 2 | Pending |
 | SCRP-03 | Phase 2 | Pending |
