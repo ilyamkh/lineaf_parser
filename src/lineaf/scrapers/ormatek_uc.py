@@ -34,12 +34,16 @@ logger = logging.getLogger("lineaf.scrapers.ormatek")
 CATALOG_URL = "https://ormatek.com/catalog/matrasy/160x200/"
 
 CHAR_LABEL_MAP = {
+    "жесткость": "firmness",
     "высота": "height_cm",
     "наполнитель": "filler",
-    "нагрузка": "weight_kg",
-    "вес": "weight_kg",
     "материал чехла": "cover_material",
+    "max. вес на спальное место": "weight_kg",
+    "максимальная нагрузка": "weight_kg",
 }
+# Note: on Ormatek product pages, firmness and filler are often NOT in
+# characteristics-block — they appear as visual icons on catalog cards only.
+# These fields will be NULL for most Ormatek products.
 
 
 def init_driver():
