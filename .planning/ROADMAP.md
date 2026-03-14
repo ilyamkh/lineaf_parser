@@ -30,26 +30,26 @@ Decimal phases appear between their surrounding integers in numeric order.
 **Plans**: 2 plans
 
 Plans:
-- [ ] 01-01-PLAN.md — Project scaffold (uv, pyproject.toml, .env, docker-compose, config, database, Alembic init)
-- [ ] 01-02-PLAN.md — SQLAlchemy models + Alembic migration + test suite for STOR-01 through STOR-04
+- [x] 01-01-PLAN.md — Project scaffold (uv, pyproject.toml, .env, docker-compose, config, database, Alembic init)
+- [x] 01-02-PLAN.md — SQLAlchemy models + Alembic migration + test suite for STOR-01 through STOR-04
 
 ### Phase 2: Scrapers
 **Goal**: All three competitor sites are scraped automatically, producing complete, validated product records in the database, with new and removed products correctly detected.
 **Depends on**: Phase 1
 **Requirements**: SCRP-01, SCRP-02, SCRP-03, SCRP-04, SCRP-05, SCRP-06, SCRP-07
 **Success Criteria** (what must be TRUE):
-  1. Running the Askona spider inserts all 160×200 mattresses with non-null values for model, price_sale, price_original, firmness, height, filler, cover material, and weight per sleeping place
+  1. Running the Askona spider inserts all 160x200 mattresses with non-null values for model, price_sale, price_original, firmness, height, filler, cover material, and weight per sleeping place
   2. Running the Ormatek and Sonum spiders produces equivalent complete records — all required fields populated, all catalog pages covered (no pagination truncation)
   3. Running the scraper twice in a row: second run detects zero new products and zero removed products when the catalog hasn't changed
   4. Removing a product from the catalog (simulated) causes the spider to set `is_active = false` on that product without deleting its price history
   5. The `scrape_runs` table records a row for each run with start time, end time, item count, and success/failure status
-**Plans**: TBD
+**Plans**: 4 plans
 
 Plans:
-- [ ] 02-01: Askona spider (Playwright + Camoufox, pagination, field extraction, price parsing utility)
-- [ ] 02-02: Ormatek spider (adapt pattern, handle site-specific pagination and selectors)
-- [ ] 02-03: Sonum spider (adapt pattern, handle site-specific pagination and selectors)
-- [ ] 02-04: Item pipeline (field validation, price normalization, UPSERT products, INSERT price_snapshots, new/removed detection, scrape_runs logging)
+- [ ] 02-01-PLAN.md — BaseScraper + item pipeline (Camoufox setup, UPSERT, change detection, price parsing, unit tests)
+- [ ] 02-02-PLAN.md — Askona spider (__NEXT_DATA__ JSON extraction, field mapping, unit tests)
+- [ ] 02-03-PLAN.md — Sonum spider (Bitrix PAGEN_1 pagination, HTML extraction, unit tests)
+- [ ] 02-04-PLAN.md — Ormatek spider (Camoufox discovery, selector mapping, live verification checkpoint)
 
 ### Phase 3: Dashboard
 **Goal**: The team can open a browser, see current competitor prices and their history, and the system collects new data automatically every week without manual intervention.
@@ -76,5 +76,5 @@ Phases execute in numeric order: 1 → 2 → 3
 | Phase | Plans Complete | Status | Completed |
 |-------|----------------|--------|-----------|
 | 1. Foundation | 2/2 | Complete   | 2026-03-14 |
-| 2. Scrapers | 0/4 | Not started | - |
+| 2. Scrapers | 0/4 | In progress | - |
 | 3. Dashboard | 0/3 | Not started | - |
