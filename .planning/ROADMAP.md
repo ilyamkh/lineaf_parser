@@ -27,11 +27,11 @@ Decimal phases appear between their surrounding integers in numeric order.
   2. All three tables (`products`, `price_snapshots`, `scrape_runs`) exist with correct columns and types after running Alembic migrations
   3. A manual test insert of a product + price snapshot round-trips correctly through SQLAlchemy models
   4. `is_active` flag exists on `products`; both `price_original` and `price_sale` are stored as `NUMERIC(12,2)`, not float or text
-**Plans**: TBD
+**Plans**: 2 plans
 
 Plans:
-- [ ] 01-01: Project scaffold (uv, pyproject.toml, .env, docker-compose, directory structure)
-- [ ] 01-02: SQLAlchemy models + Alembic migrations for all three tables
+- [ ] 01-01-PLAN.md — Project scaffold (uv, pyproject.toml, .env, docker-compose, config, database, Alembic init)
+- [ ] 01-02-PLAN.md — SQLAlchemy models + Alembic migration + test suite for STOR-01 through STOR-04
 
 ### Phase 2: Scrapers
 **Goal**: All three competitor sites are scraped automatically, producing complete, validated product records in the database, with new and removed products correctly detected.
