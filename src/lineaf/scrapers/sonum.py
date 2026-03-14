@@ -277,11 +277,23 @@ class SonumScraper(BaseScraper):
                 url,
             )
 
-        # --- Filler fallback: try description text ---
+        # --- Height fallback: data-select-height attribute ---
+        height = chars.get("height_cm")
+        if not height:
+            height_el = await page.query_selector("[data-select-height]")
+            if height_el:
+                height = await height_el.get_attribute("data-select-height")
+
+        # --- Filler: try characteristics, then "Состав:" in page text ---
         filler = chars.get("filler")
         if not filler:
             page_text = await page.inner_text("body")
-            filler = extract_filler_from_description(page_text or "")
+            # Try "Состав: ..." pattern first
+            sostav_match = re.search(r"Состав:\s*(.+?)(?:\n|$)", page_text or "")
+            if sostav_match:
+                filler = sostav_match.group(1).strip()
+            else:
+                filler = extract_filler_from_description(page_text or "")
 
         # Note: delay is handled by BaseScraper.run() after each product
 
@@ -290,7 +302,7 @@ class SonumScraper(BaseScraper):
             "source_url": url,
             "name": name,
             "firmness": chars.get("firmness"),
-            "height_cm": chars.get("height_cm"),
+            "height_cm": height,
             "filler": filler,
             "cover_material": chars.get("cover_material"),
             "weight_kg": chars.get("weight_kg"),
