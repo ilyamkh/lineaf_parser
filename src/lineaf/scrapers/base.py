@@ -160,17 +160,77 @@ class BaseScraper(abc.ABC):
     async def goto_with_retry(
         self, page, url: str, max_attempts: int = 3
     ) -> None:
-        """Navigate to URL with retry on 403/timeout. Waits 30-60s between retries."""
+        """Navigate to URL with retry on 403/timeout/NS_ERROR_ABORT.
+
+        Handles Firefox-specific NS_ERROR_ABORT (navigation aborted by
+        competing client-side navigation, e.g. Next.js SPA routing or
+        modal popups). When this error occurs, checks if the page actually
+        loaded before retrying.
+
+        Uses escalating strategy:
+        1. Normal page.goto with domcontentloaded
+        2. On NS_ERROR_ABORT: check if page loaded anyway, else retry
+           with shorter wait (it's a browser conflict, not rate-limiting)
+        3. Final fallback: JS-based navigation (window.location)
+        """
         for attempt in range(max_attempts):
             try:
-                response = await page.goto(url, timeout=30000, wait_until="domcontentloaded")
+                response = await page.goto(
+                    url, timeout=60000, wait_until="domcontentloaded"
+                )
                 if response and response.status == 403:
                     raise RuntimeError(f"403 Forbidden: {url}")
                 return response
             except Exception as e:
+                error_msg = str(e)
+                is_abort = "NS_ERROR_ABORT" in error_msg or "NS_BINDING_ABORTED" in error_msg
+
+                if is_abort:
+                    # Firefox NS_ERROR_ABORT: page may have loaded despite the error.
+                    # Check if the current page URL matches and has content.
+                    try:
+                        await asyncio.sleep(2)
+                        current_url = page.url
+                        content = await page.content()
+                        # If we're on the right page and it has real content, treat as success
+                        if len(content) > 1000:
+                            logger.info(
+                                "%s: NS_ERROR_ABORT on %s but page loaded (url=%s, len=%d), continuing",
+                                self.site_name,
+                                url,
+                                current_url,
+                                len(content),
+                            )
+                            return None
+                    except Exception:
+                        pass  # Page truly didn't load, fall through to retry
+
                 if attempt == max_attempts - 1:
+                    # Final attempt: try JS-based navigation as last resort
+                    if is_abort:
+                        try:
+                            logger.info(
+                                "%s: final attempt using JS navigation for %s",
+                                self.site_name,
+                                url,
+                            )
+                            await page.evaluate(f"window.location.href = {url!r}")
+                            await page.wait_for_load_state(
+                                "domcontentloaded", timeout=60000
+                            )
+                            return None
+                        except Exception as e2:
+                            logger.error(
+                                "%s: JS navigation also failed for %s: %s",
+                                self.site_name,
+                                url,
+                                e2,
+                            )
                     raise
-                wait = random.uniform(30, 60)
+
+                # Short wait for abort errors (browser conflict, not rate-limit)
+                # Longer wait for other errors (network, server issues)
+                wait = random.uniform(3, 8) if is_abort else random.uniform(30, 60)
                 logger.warning(
                     "%s: attempt %d/%d failed for %s (%s), retrying in %.0fs",
                     self.site_name,

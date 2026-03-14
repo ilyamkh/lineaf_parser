@@ -6,6 +6,7 @@ import json
 import logging
 import re
 from decimal import Decimal
+from html import unescape
 
 from lineaf.scrapers.base import BaseScraper
 
@@ -16,6 +17,9 @@ _NEXT_DATA_RE = re.compile(
     r'<script id="__NEXT_DATA__" type="application/json">(.*?)</script>',
     re.DOTALL,
 )
+
+# Strip HTML tags from characteristic values (Askona wraps them in <a> tags)
+_HTML_TAG_RE = re.compile(r"<[^>]+>")
 
 # Russian field name mapping for product characteristics
 _FIELD_MAP = {
@@ -61,7 +65,10 @@ def parse_askona_product_json(data: dict, url: str) -> dict:
         first_group = chars_groups[0]
         if isinstance(first_group, dict):
             for item in first_group.get("items", []):
-                chars[item["name"]] = item["value"]
+                raw_value = item["value"]
+                # Strip HTML tags (Askona wraps values in <a> links)
+                clean_value = unescape(_HTML_TAG_RE.sub("", raw_value)).strip()
+                chars[item["name"]] = clean_value
 
     # Map Russian field names to DB fields
     mapped: dict[str, str | None] = {}
