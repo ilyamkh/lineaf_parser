@@ -3,15 +3,15 @@ gsd_state_version: 1.0
 milestone: v1.0
 milestone_name: milestone
 status: executing
-stopped_at: Completed 02-01-PLAN.md
-last_updated: "2026-03-14T15:42:54.373Z"
-last_activity: 2026-03-14 — Completed Plan 02-01 (Scraper Foundation)
+stopped_at: Completed 02-02-PLAN.md
+last_updated: "2026-03-14T15:48:08.731Z"
+last_activity: 2026-03-14 — Completed Plan 02-03 (Sonum Spider)
 progress:
   total_phases: 3
   completed_phases: 1
   total_plans: 6
-  completed_plans: 3
-  percent: 50
+  completed_plans: 5
+  percent: 67
 ---
 
 # Project State
@@ -26,11 +26,11 @@ See: .planning/PROJECT.md (updated 2026-03-14)
 ## Current Position
 
 Phase: 2 of 3 (Scrapers)
-Plan: 1 of 4 in current phase -- COMPLETE
+Plan: 3 of 4 in current phase -- COMPLETE
 Status: In Progress
-Last activity: 2026-03-14 — Completed Plan 02-01 (Scraper Foundation)
+Last activity: 2026-03-14 — Completed Plan 02-03 (Sonum Spider)
 
-Progress: [█████░░░░░] 50%
+Progress: [███████░░░] 67%
 
 ## Performance Metrics
 
@@ -52,6 +52,8 @@ Progress: [█████░░░░░] 50%
 *Updated after each plan completion*
 | Phase 01 P02 | 3 min | 2 tasks | 9 files |
 | Phase 02-scrapers P01 | 5 min | 2 tasks | 8 files |
+| Phase 02-scrapers P03 | 2 min | 2 tasks | 2 files |
+| Phase 02-scrapers P02 | 3 min | 2 tasks | 2 files |
 
 ## Accumulated Context
 
@@ -69,6 +71,10 @@ Recent decisions affecting current work:
 - [Phase 01]: SQLite in-memory test fallback with TEST_DATABASE_URL override for PostgreSQL
 - [Phase 02-01]: Dialect-aware UPSERT: PostgreSQL atomic ON CONFLICT DO UPDATE, SQLite SELECT-then-INSERT/UPDATE fallback for test compatibility
 - [Phase 02-01]: Dynamic spider import via registry dict in run_scrapers.py to avoid circular imports
+- [Phase 02-02]: Standalone parse functions for Askona JSON (parse_askona_catalog_json, parse_askona_product_json) enable unit testing without browser
+- [Phase 02-02]: Zero oldPrice treated as None rather than Decimal(0) for pipeline compatibility
+- [Phase 02-03]: Pure-function extraction helpers (parse_characteristics, extract_filler_from_description) for testability without Playwright mocks
+- [Phase 02-03]: Multiple fallback CSS selectors for uncertain DOM structure (3-5 selectors per element type)
 
 ### Pending Todos
 
@@ -81,6 +87,6 @@ None yet.
 
 ## Session Continuity
 
-Last session: 2026-03-14T15:42:53.207Z
-Stopped at: Completed 02-01-PLAN.md
+Last session: 2026-03-14T15:47:55.498Z
+Stopped at: Completed 02-02-PLAN.md
 Resume file: None

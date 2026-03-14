@@ -9,7 +9,7 @@ Requirements for initial release. Each maps to roadmap phases.
 
 ### Scraping
 
-- [ ] **SCRP-01**: Парсер собирает каталог матрасов 160×200 с askona.ru (все страницы пагинации)
+- [x] **SCRP-01**: Парсер собирает каталог матрасов 160×200 с askona.ru (все страницы пагинации)
 - [ ] **SCRP-02**: Парсер собирает каталог матрасов 160×200 с ormatek.ru (все страницы пагинации)
 - [ ] **SCRP-03**: Парсер собирает каталог матрасов 160×200 с sonum.ru (все страницы пагинации)
 - [x] **SCRP-04**: Для каждого матраса собираются поля: модель, цена до скидки, цена после скидки, жёсткость, высота, наполнитель, материал чехла, вес на спальное место
@@ -77,7 +77,7 @@ Deferred to future release. Tracked but not in current roadmap.
 | STOR-02 | Phase 1 | Complete |
 | STOR-03 | Phase 1 | Complete |
 | STOR-04 | Phase 1 | Complete |
-| SCRP-01 | Phase 2 | Pending |
+| SCRP-01 | Phase 2 | Complete |
 | SCRP-02 | Phase 2 | Pending |
 | SCRP-03 | Phase 2 | Pending |
 | SCRP-04 | Phase 2 | Complete |
