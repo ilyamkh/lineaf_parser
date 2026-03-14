@@ -5,6 +5,7 @@ from __future__ import annotations
 import argparse
 import asyncio
 import logging
+import subprocess
 import sys
 
 logger = logging.getLogger("lineaf.scrapers")
@@ -49,9 +50,34 @@ def main(sites: list[str] | None = None) -> None:
 
         logger.info("Starting scraper for %s", site)
         try:
-            spider_cls = _import_spider(site)
-            spider = spider_cls()
-            asyncio.run(spider.run())
+            if site == "ormatek":
+                # Ormatek requires undetected_chromedriver (Python 3.11)
+                # because the site detects Playwright/Camoufox automation
+                logger.info("ormatek: launching via undetected_chromedriver (Python 3.11)")
+                import shutil
+                uv_bin = shutil.which("uv") or str(__import__("pathlib").Path.home() / ".local/bin/uv")
+                result = subprocess.run(
+                    [
+                        uv_bin, "run", "--python", "3.11",
+                        "--with", "undetected-chromedriver",
+                        "--with", "selenium",
+                        "--with", "sqlalchemy",
+                        "--with", "psycopg2-binary",
+                        "--with", "pydantic-settings",
+                        "--with", "python-dotenv",
+                        "--no-project",
+                        "python", "src/lineaf/scrapers/ormatek_uc.py",
+                    ],
+                    cwd=str(__import__("pathlib").Path(__file__).resolve().parents[2]),
+                    capture_output=False,
+                    timeout=600,
+                )
+                if result.returncode != 0:
+                    logger.error("ormatek: subprocess exited with code %d", result.returncode)
+            else:
+                spider_cls = _import_spider(site)
+                spider = spider_cls()
+                asyncio.run(spider.run())
             logger.info("Completed scraper for %s", site)
         except Exception as e:
             logger.error("Scraper for %s failed: %s", site, e, exc_info=True)
