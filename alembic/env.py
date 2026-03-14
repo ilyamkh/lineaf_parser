@@ -20,8 +20,8 @@ config.set_main_option("sqlalchemy.url", os.environ["DATABASE_URL"])
 if config.config_file_name is not None:
     fileConfig(config.config_file_name)
 
-# Import Base for autogenerate support
-from lineaf.models.base import Base  # noqa: E402
+# Import Base and all models for autogenerate support
+from lineaf.models import Base, Product, PriceSnapshot, ScrapeRun  # noqa: E402, F401
 
 target_metadata = Base.metadata
 
