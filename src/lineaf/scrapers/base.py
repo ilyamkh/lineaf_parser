@@ -45,7 +45,9 @@ class BaseScraper(abc.ABC):
         """Launch browser based on engine preference."""
         if self.browser_engine == "chromium":
             async with async_playwright() as p:
-                browser = await p.chromium.launch(headless=False)
+                browser = await p.chromium.launch(
+                    headless=True, args=["--headless=new"]
+                )
                 page = await browser.new_page()
                 try:
                     yield page
@@ -265,8 +267,8 @@ class BaseScraper(abc.ABC):
                 await asyncio.sleep(wait)
 
     async def delay(self) -> None:
-        """Random delay between requests (2-5 seconds)."""
-        await asyncio.sleep(random.uniform(2, 5))
+        """Random delay between requests (1-2 seconds)."""
+        await asyncio.sleep(random.uniform(1, 2))
 
     @abc.abstractmethod
     async def collect_product_urls(self, page) -> list[str]:
