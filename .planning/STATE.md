@@ -2,16 +2,16 @@
 gsd_state_version: 1.0
 milestone: v1.0
 milestone_name: milestone
-status: completed
-stopped_at: Phase 2 context gathered
-last_updated: "2026-03-14T15:08:32.331Z"
-last_activity: 2026-03-14 — Completed Plan 01-02 (SQLAlchemy Models + Migration)
+status: executing
+stopped_at: Completed 02-01-PLAN.md
+last_updated: "2026-03-14T15:42:54.373Z"
+last_activity: 2026-03-14 — Completed Plan 02-01 (Scraper Foundation)
 progress:
   total_phases: 3
   completed_phases: 1
-  total_plans: 2
-  completed_plans: 2
-  percent: 100
+  total_plans: 6
+  completed_plans: 3
+  percent: 50
 ---
 
 # Project State
@@ -21,16 +21,16 @@ progress:
 See: .planning/PROJECT.md (updated 2026-03-14)
 
 **Core value:** Команда Lineaf в любой момент видит актуальные цены конкурентов и их динамику для принятия решений по ценообразованию.
-**Current focus:** Phase 1 — Foundation
+**Current focus:** Phase 2 — Scrapers
 
 ## Current Position
 
-Phase: 1 of 3 (Foundation) -- COMPLETE
-Plan: 2 of 2 in current phase
-Status: Phase Complete
-Last activity: 2026-03-14 — Completed Plan 01-02 (SQLAlchemy Models + Migration)
+Phase: 2 of 3 (Scrapers)
+Plan: 1 of 4 in current phase -- COMPLETE
+Status: In Progress
+Last activity: 2026-03-14 — Completed Plan 02-01 (Scraper Foundation)
 
-Progress: [██████████] 100%
+Progress: [█████░░░░░] 50%
 
 ## Performance Metrics
 
@@ -51,6 +51,7 @@ Progress: [██████████] 100%
 
 *Updated after each plan completion*
 | Phase 01 P02 | 3 min | 2 tasks | 9 files |
+| Phase 02-scrapers P01 | 5 min | 2 tasks | 8 files |
 
 ## Accumulated Context
 
@@ -66,6 +67,8 @@ Recent decisions affecting current work:
 - [01-01]: conftest.py sys.path fix for Anaconda Python + Cyrillic path compatibility
 - [Phase 01]: Hand-written Alembic migration (no Docker/PostgreSQL available for autogenerate)
 - [Phase 01]: SQLite in-memory test fallback with TEST_DATABASE_URL override for PostgreSQL
+- [Phase 02-01]: Dialect-aware UPSERT: PostgreSQL atomic ON CONFLICT DO UPDATE, SQLite SELECT-then-INSERT/UPDATE fallback for test compatibility
+- [Phase 02-01]: Dynamic spider import via registry dict in run_scrapers.py to avoid circular imports
 
 ### Pending Todos
 
@@ -78,6 +81,6 @@ None yet.
 
 ## Session Continuity
 
-Last session: 2026-03-14T15:08:32.329Z
-Stopped at: Phase 2 context gathered
-Resume file: .planning/phases/02-scrapers/02-CONTEXT.md
+Last session: 2026-03-14T15:42:53.207Z
+Stopped at: Completed 02-01-PLAN.md
+Resume file: None
