@@ -123,6 +123,32 @@ def get_price_index(db: Session = Depends(get_db)):
     ]
 
 
+@router.get("/products/details")
+def get_product_details(
+    site: Optional[str] = Query(None),
+    db: Session = Depends(get_db),
+):
+    """Return full product details including characteristics."""
+    rows = _latest_snapshots_query(db, site=site)
+    result = []
+    for p, s in rows:
+        result.append({
+            "product_id": p.id,
+            "name": p.name,
+            "source_site": p.source_site,
+            "price_sale": float(s.price_sale) if s.price_sale is not None else None,
+            "price_original": float(s.price_original) if s.price_original is not None else None,
+            "firmness": p.firmness,
+            "height_cm": p.height_cm,
+            "filler": p.filler,
+            "cover_material": p.cover_material,
+            "weight_kg": p.weight_kg,
+            "source_url": p.source_url,
+            "scraped_at": s.scraped_at.isoformat() if s.scraped_at else None,
+        })
+    return result
+
+
 @router.get("/export")
 def export_excel(db: Session = Depends(get_db)):
     """Export latest prices as an Excel file."""
