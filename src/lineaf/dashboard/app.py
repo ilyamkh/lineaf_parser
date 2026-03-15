@@ -283,6 +283,10 @@ if page == "Каталог":
                      "Жёсткость", "Высота", "Наполнитель", "Чехол", "Вес", "Дата"]
         show_cols = [c for c in show_cols if c in df_d.columns]
 
+        # Sort by competitor, then name; replace None with empty string
+        df_d = df_d.sort_values(["Конкурент", "Название"], ignore_index=True)
+        df_d = df_d.fillna("")
+
         st.dataframe(
             df_d[show_cols],
             use_container_width=True,
