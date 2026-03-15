@@ -467,32 +467,46 @@ elif page == "Графики":
                     fig.update_layout(template="plotly_white")
                     st.plotly_chart(fig, use_container_width=True)
 
-                    # Summary table: per-competitor growth using each competitor's own first/last date
-                    growth_rows = []
-                    for site_name in avg["source_site"].unique():
-                        site_data = avg[avg["source_site"] == site_name].sort_values("date")
-                        if len(site_data) >= 2:
-                            p0 = site_data.iloc[0]["price_sale"]
-                            p1 = site_data.iloc[-1]["price_sale"]
-                            d0 = site_data.iloc[0]["date"]
-                            d1 = site_data.iloc[-1]["date"]
-                            pct = ((p1 - p0) / p0) * 100 if p0 else 0
-                            growth_rows.append({
-                                "Конкурент": site_name,
-                                "Дата от": str(d0),
-                                "Ср. цена (от)": round(p0, 0),
-                                "Дата до": str(d1),
-                                "Ср. цена (до)": round(p1, 0),
-                                "Рост %": round(pct, 1),
-                            })
+                    # Summary table: growth between the two selected dates
+                    # Use chart_date_from / chart_date_to from the selectors above
+                    d_from = pd.Timestamp(chart_date_from).date() if chart_date_from else None
+                    d_to = pd.Timestamp(chart_date_to).date() if chart_date_to else None
+
+                    if d_from and d_to and d_from != d_to:
+                        # Calculate period in months
+                        delta_days = (d_to - d_from).days
+                        if delta_days >= 60:
+                            period_str = f"{delta_days // 30} мес."
+                        elif delta_days >= 14:
+                            period_str = f"{delta_days // 7} нед."
+                        else:
+                            period_str = f"{delta_days} дн."
+
+                        growth_rows = []
+                        for site_name in avg["source_site"].unique():
+                            site_data = avg[avg["source_site"] == site_name].sort_values("date")
+                            if len(site_data) >= 2:
+                                # Closest to from-date and to-date
+                                p0 = site_data.iloc[0]["price_sale"]
+                                p1 = site_data.iloc[-1]["price_sale"]
+                                pct = ((p1 - p0) / p0) * 100 if p0 else 0
+                                growth_rows.append({
+                                    "Конкурент": site_name,
+                                    "Ср. цена (начало)": round(p0, 0),
+                                    "Ср. цена (конец)": round(p1, 0),
+                                    "Рост %": round(pct, 1),
+                                })
+
                         if growth_rows:
-                            st.markdown("**Рост средней цены за период**")
+                            st.markdown(f"**Рост средней цены за {period_str}**")
                             df_growth = pd.DataFrame(growth_rows)
                             st.dataframe(
                                 df_growth,
                                 use_container_width=True,
                                 hide_index=True,
                                 column_config={
+                                    "Ср. цена (начало)": st.column_config.NumberColumn(format="%.0f ₽"),
+                                    "Ср. цена (конец)": st.column_config.NumberColumn(format="%.0f ₽"),
                                     "Рост %": st.column_config.NumberColumn(format="%+.1f%%"),
                                 },
                             )
