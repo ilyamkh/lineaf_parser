@@ -26,12 +26,12 @@ Requirements for initial release. Each maps to roadmap phases.
 
 ### Dashboard
 
-- [ ] **DASH-01**: Дашборд показывает таблицу текущих цен по конкурентам с фильтрацией
-- [ ] **DASH-02**: Дашборд показывает графики динамики цен по выбранным товарам/конкурентам
-- [ ] **DASH-03**: Дашборд позволяет экспортировать данные в Excel/CSV
-- [ ] **DASH-04**: Дашборд показывает ценовой индекс (средняя цена категории по конкурентам)
-- [ ] **DASH-05**: Дашборд показывает индикатор свежести данных (когда последний раз собирались)
-- [ ] **DASH-06**: Дашборд показывает список новых и удалённых позиций
+- [x] **DASH-01**: Дашборд показывает таблицу текущих цен по конкурентам с фильтрацией
+- [x] **DASH-02**: Дашборд показывает графики динамики цен по выбранным товарам/конкурентам
+- [x] **DASH-03**: Дашборд позволяет экспортировать данные в Excel/CSV
+- [x] **DASH-04**: Дашборд показывает ценовой индекс (средняя цена категории по конкурентам)
+- [x] **DASH-05**: Дашборд показывает индикатор свежести данных (когда последний раз собирались)
+- [x] **DASH-06**: Дашборд показывает список новых и удалённых позиций
 
 ### Scheduling
 
@@ -84,12 +84,12 @@ Deferred to future release. Tracked but not in current roadmap.
 | SCRP-05 | Phase 2 | Complete |
 | SCRP-06 | Phase 2 | Complete |
 | SCRP-07 | Phase 2 | Complete |
-| DASH-01 | Phase 3 | Pending |
-| DASH-02 | Phase 3 | Pending |
-| DASH-03 | Phase 3 | Pending |
-| DASH-04 | Phase 3 | Pending |
-| DASH-05 | Phase 3 | Pending |
-| DASH-06 | Phase 3 | Pending |
+| DASH-01 | Phase 3 | Complete |
+| DASH-02 | Phase 3 | Complete |
+| DASH-03 | Phase 3 | Complete |
+| DASH-04 | Phase 3 | Complete |
+| DASH-05 | Phase 3 | Complete |
+| DASH-06 | Phase 3 | Complete |
 | SCHD-01 | Phase 3 | Complete |
 | SCHD-02 | Phase 3 | Complete |
 

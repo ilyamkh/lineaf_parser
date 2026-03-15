@@ -2,15 +2,15 @@
 gsd_state_version: 1.0
 milestone: v1.0
 milestone_name: milestone
-status: completed
-stopped_at: Completed 03-02-PLAN.md
-last_updated: "2026-03-15T05:19:44.208Z"
-last_activity: 2026-03-14 — Completed Plan 02-04 (Ormatek Spider)
+status: executing
+stopped_at: Completed 03-01-PLAN.md
+last_updated: "2026-03-15T05:22:19.267Z"
+last_activity: 2026-03-15 — Completed Plan 03-02 (Scheduler)
 progress:
   total_phases: 3
   completed_phases: 2
   total_plans: 9
-  completed_plans: 7
+  completed_plans: 8
   percent: 100
 ---
 
@@ -56,6 +56,7 @@ Progress: [██████████] 100%
 | Phase 02-scrapers P02 | 3 min | 2 tasks | 2 files |
 | Phase 02-scrapers P03 | 2 | 2 tasks | 2 files |
 | Phase 02-scrapers P04 | 3 min | 3 tasks | 3 files |
+| Phase 03-dashboard P01 | 3 min | 1 tasks | 7 files |
 | Phase 03-dashboard P02 | 2 min | 2 tasks | 6 files |
 
 ## Accumulated Context
@@ -82,6 +83,9 @@ Recent decisions affecting current work:
 - [Phase 02-04]: parse_ormatek_characteristics as module-level pure function for testability (consistent with Sonum pattern)
 - [Phase 03-dashboard]: BackgroundScheduler (not AsyncIOScheduler) to avoid asyncio.run() conflicts with scrapers
 - [Phase 03-dashboard]: Daemon thread for POST /scrape instead of FastAPI BackgroundTasks to avoid blocking worker pool
+- [Phase 03-01]: StaticPool for SQLite in-memory test DB -- single connection shared across all sessions
+- [Phase 03-01]: Max snapshot ID subquery for latest-per-product price (deterministic, avoids scraped_at ties)
+- [Phase 03-01]: Naive datetime UTC assumption when SQLite strips timezone info for comparison operations
 
 ### Pending Todos
 
@@ -94,6 +98,6 @@ None yet.
 
 ## Session Continuity
 
-Last session: 2026-03-15T05:19:44.207Z
-Stopped at: Completed 03-02-PLAN.md
+Last session: 2026-03-15T05:22:19.265Z
+Stopped at: Completed 03-01-PLAN.md
 Resume file: None
