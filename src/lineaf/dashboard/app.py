@@ -467,25 +467,24 @@ elif page == "Графики":
                     fig.update_layout(template="plotly_white")
                     st.plotly_chart(fig, use_container_width=True)
 
-                    # Summary table: average price growth % per competitor between selected dates
-                    dates_in_data = sorted(avg["date"].unique())
-                    if len(dates_in_data) >= 2:
-                        first_date = dates_in_data[0]
-                        last_date = dates_in_data[-1]
-                        avg_first = avg[avg["date"] == first_date].set_index("source_site")["price_sale"]
-                        avg_last = avg[avg["date"] == last_date].set_index("source_site")["price_sale"]
-                        growth_rows = []
-                        for site_name in avg["source_site"].unique():
-                            if site_name in avg_first.index and site_name in avg_last.index:
-                                p0 = avg_first[site_name]
-                                p1 = avg_last[site_name]
-                                pct = ((p1 - p0) / p0) * 100 if p0 else 0
-                                growth_rows.append({
-                                    "Конкурент": site_name,
-                                    f"Ср. цена ({first_date})": round(p0, 0),
-                                    f"Ср. цена ({last_date})": round(p1, 0),
-                                    "Рост %": round(pct, 1),
-                                })
+                    # Summary table: per-competitor growth using each competitor's own first/last date
+                    growth_rows = []
+                    for site_name in avg["source_site"].unique():
+                        site_data = avg[avg["source_site"] == site_name].sort_values("date")
+                        if len(site_data) >= 2:
+                            p0 = site_data.iloc[0]["price_sale"]
+                            p1 = site_data.iloc[-1]["price_sale"]
+                            d0 = site_data.iloc[0]["date"]
+                            d1 = site_data.iloc[-1]["date"]
+                            pct = ((p1 - p0) / p0) * 100 if p0 else 0
+                            growth_rows.append({
+                                "Конкурент": site_name,
+                                "Дата от": str(d0),
+                                "Ср. цена (от)": round(p0, 0),
+                                "Дата до": str(d1),
+                                "Ср. цена (до)": round(p1, 0),
+                                "Рост %": round(pct, 1),
+                            })
                         if growth_rows:
                             st.markdown("**Рост средней цены за период**")
                             df_growth = pd.DataFrame(growth_rows)
