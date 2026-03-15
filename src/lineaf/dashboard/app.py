@@ -53,7 +53,9 @@ st.markdown("""
 
     /* Fix header cutoff */
     .block-container { padding-top: 0.75rem !important; padding-bottom: 1rem; max-width: 1400px; }
-    header[data-testid="stHeader"] { display: none !important; }
+    /* Hide header decorations but keep sidebar toggle button */
+    header[data-testid="stHeader"] { background: transparent !important; border: none !important; }
+    header[data-testid="stHeader"] .stDecorationLine { display: none !important; }
 
     /* Sidebar */
     section[data-testid="stSidebar"] { background: #F8FAFC; border-right: 1px solid #E2E8F0; }
