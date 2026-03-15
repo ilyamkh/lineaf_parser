@@ -66,9 +66,11 @@ def extract_filler_from_description(text: str) -> str | None:
 class SonumScraper(BaseScraper):
     """Scraper for sonum.ru mattress catalog (160x200 size filter).
 
-    Uses Bitrix CMS PAGEN_1 pagination parameter to iterate catalog pages.
-    Extracts product data from server-rendered HTML using CSS selectors.
+    Uses Playwright Chromium (not Camoufox) for server compatibility —
+    Camoufox requires GTK libraries not available on headless Linux servers.
     """
+
+    browser_engine = "chromium"
 
     def __init__(self) -> None:
         super().__init__(
