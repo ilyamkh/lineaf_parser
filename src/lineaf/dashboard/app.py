@@ -39,39 +39,118 @@ SITE_NAMES: dict[str, str] = {
 }
 
 SITE_COLORS: dict[str, str] = {
-    "Аскона": "#FF6B6B",
-    "Орматек": "#FFA500",
-    "Сонум": "#4ECDC4",
+    "Аскона": "#EF4444",
+    "Орматек": "#F59E0B",
+    "Сонум": "#3B82F6",
+}
+
+SITE_BG_COLORS: dict[str, str] = {
+    "Аскона": "#FEF2F2",
+    "Орматек": "#FFFBEB",
+    "Сонум": "#EFF6FF",
 }
 
 # ---------------------------------------------------------------------------
-# Custom CSS for better design
+# Custom CSS — Data-Dense Dashboard style
 # ---------------------------------------------------------------------------
 
 st.markdown("""
 <style>
-    /* Compact header */
-    .block-container { padding-top: 1rem; }
+    @import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap');
 
-    /* Sticky KPI bar */
-    [data-testid="stMetric"] {
-        background: #f8f9fa;
-        border-radius: 8px;
-        padding: 10px 14px;
-        border-left: 4px solid #4ECDC4;
+    /* Base typography */
+    html, body, [class*="css"] {
+        font-family: 'Inter', -apple-system, BlinkMacSystemFont, sans-serif;
     }
-    [data-testid="stMetricLabel"] { font-size: 0.8rem; }
-    [data-testid="stMetricValue"] { font-size: 1.2rem; }
 
-    /* Navigation styling */
-    .stRadio > label { font-weight: 600; font-size: 1rem; }
-    .stRadio [role="radiogroup"] { gap: 0.2rem; }
+    /* Remove default Streamlit top padding — prevents title cutoff */
+    .block-container {
+        padding-top: 1.5rem !important;
+        padding-bottom: 1rem;
+        max-width: 1400px;
+    }
 
-    /* Dataframe improvements */
-    .stDataFrame { border-radius: 8px; }
+    /* Hide Streamlit deploy button */
+    .stDeployButton { display: none; }
+    #MainMenu { visibility: hidden; }
 
-    /* Section dividers */
-    hr { margin: 0.5rem 0; }
+    /* KPI metric cards — compact */
+    [data-testid="stMetric"] {
+        background: #FFFFFF;
+        border: 1px solid #E2E8F0;
+        border-radius: 10px;
+        padding: 12px 16px;
+        box-shadow: 0 1px 3px rgba(0,0,0,0.04);
+    }
+    [data-testid="stMetricLabel"] {
+        font-size: 0.75rem !important;
+        font-weight: 500;
+        color: #64748B !important;
+        letter-spacing: 0.02em;
+    }
+    [data-testid="stMetricValue"] {
+        font-size: 1.15rem !important;
+        font-weight: 700;
+        color: #1E293B !important;
+    }
+
+    /* Sidebar navigation */
+    section[data-testid="stSidebar"] {
+        background: #F8FAFC;
+        border-right: 1px solid #E2E8F0;
+    }
+    section[data-testid="stSidebar"] .stRadio [role="radiogroup"] {
+        gap: 2px;
+    }
+    section[data-testid="stSidebar"] .stRadio [role="radio"] {
+        padding: 8px 12px;
+        border-radius: 6px;
+        transition: background 0.15s;
+    }
+    section[data-testid="stSidebar"] .stRadio [role="radio"]:hover {
+        background: #E2E8F0;
+    }
+
+    /* Data tables */
+    .stDataFrame {
+        border-radius: 8px;
+        border: 1px solid #E2E8F0;
+    }
+
+    /* Subheaders */
+    h3 {
+        color: #1E293B;
+        font-weight: 600;
+        font-size: 1.1rem !important;
+        margin-top: 0.5rem !important;
+    }
+
+    /* Dividers */
+    hr {
+        margin: 0.75rem 0;
+        border-color: #E2E8F0;
+    }
+
+    /* Buttons */
+    .stButton button {
+        border-radius: 8px;
+        font-weight: 500;
+        transition: all 0.15s;
+    }
+    .stButton button[kind="primary"] {
+        background: #1E40AF;
+    }
+    .stButton button[kind="primary"]:hover {
+        background: #1D4ED8;
+    }
+
+    /* Select boxes */
+    .stSelectbox, .stMultiSelect {
+        font-size: 0.9rem;
+    }
+
+    /* Plotly charts */
+    .js-plotly-plot { border-radius: 8px; }
 </style>
 """, unsafe_allow_html=True)
 
@@ -144,13 +223,17 @@ def strip_html(val):
 # ---------------------------------------------------------------------------
 
 with st.sidebar:
-    st.markdown("## 📊 Lineaf")
+    st.markdown(
+        '<div style="padding:8px 0 4px;font-size:1.3rem;font-weight:700;color:#1E40AF;">'
+        'Lineaf</div>',
+        unsafe_allow_html=True,
+    )
     st.caption("Мониторинг цен конкурентов")
     st.divider()
 
     page = st.radio(
         "Навигация",
-        ["🏠 Общая информация", "📋 Детальная информация", "📈 Графики", "🔄 Изменения", "⚙️ Логи"],
+        ["Общая информация", "Детальная информация", "Графики", "Изменения", "Логи"],
         label_visibility="collapsed",
     )
 
@@ -173,54 +256,60 @@ if not selected_sites:
 # Header: Freshness + KPIs (compact, always visible)
 # ---------------------------------------------------------------------------
 
-st.markdown("### Lineaf — Мониторинг цен конкурентов")
-
 try:
     freshness_data = fetch_freshness()
     index_data = fetch_price_index()
 except requests.exceptions.ConnectionError:
-    st.error("❌ Не удалось подключиться к API. Убедитесь, что FastAPI сервер запущен (`uvicorn lineaf.main:app`).")
+    st.error("Не удалось подключиться к API. Убедитесь, что FastAPI сервер запущен.")
     st.stop()
 
-# Freshness + KPIs in one compact row
-cols = st.columns(len(SITE_NAMES))
+# --- Compact KPI header ---
 index_map = {item["site"]: item.get("avg_price_sale", 0) for item in (index_data or [])}
-fresh_map = {}
-for item in (freshness_data or []):
-    fresh_map[item["site"]] = item
+fresh_map = {item["site"]: item for item in (freshness_data or [])}
 
+cols = st.columns(len(SITE_NAMES))
 for col, (site_key, site_name) in zip(cols, SITE_NAMES.items()):
     fresh = fresh_map.get(site_key, {})
     is_stale = fresh.get("is_stale", True)
     last_success = fresh.get("last_success")
     avg_price = index_map.get(site_key, 0)
 
-    # Format date
     if last_success:
         from datetime import datetime
         try:
             dt = datetime.fromisoformat(last_success)
-            date_str = dt.strftime("%d.%m.%Y %H:%M")
+            date_str = dt.strftime("%d.%m %H:%M")
         except (ValueError, TypeError):
-            date_str = str(last_success)
+            date_str = "—"
     else:
         date_str = "—"
 
-    color = "🔴" if is_stale else "🟢"
+    status_dot = "#22C55E" if not is_stale else "#EF4444"
+    bg = SITE_BG_COLORS.get(site_name, "#F8FAFC")
+    border_color = SITE_COLORS.get(site_name, "#3B82F6")
+
     with col:
-        st.metric(
-            label=f"{color} {site_name}",
-            value=f"{avg_price:,.0f} ₽" if avg_price else "—",
-            help=f"Обновлено: {date_str}",
+        st.markdown(
+            f'<div style="background:{bg};border:1px solid #E2E8F0;border-left:4px solid {border_color};'
+            f'border-radius:8px;padding:10px 14px;">'
+            f'<div style="display:flex;align-items:center;gap:6px;margin-bottom:4px;">'
+            f'<span style="width:8px;height:8px;border-radius:50%;background:{status_dot};display:inline-block;"></span>'
+            f'<span style="font-size:0.75rem;color:#64748B;font-weight:500;">{site_name}</span>'
+            f'<span style="font-size:0.65rem;color:#94A3B8;margin-left:auto;">{date_str}</span>'
+            f'</div>'
+            f'<div style="font-size:1.15rem;font-weight:700;color:#1E293B;">'
+            f'{avg_price:,.0f} ₽</div>'
+            f'</div>',
+            unsafe_allow_html=True,
         )
 
-st.divider()
+st.markdown('<div style="height:8px"></div>', unsafe_allow_html=True)
 
 # ---------------------------------------------------------------------------
 # Page: Общая информация (Prices table)
 # ---------------------------------------------------------------------------
 
-if page == "🏠 Общая информация":
+if page == "Общая информация":
     st.subheader("Цены конкурентов")
 
     prices_raw = fetch_prices()
@@ -294,7 +383,7 @@ if page == "🏠 Общая информация":
 # Page: Детальная информация
 # ---------------------------------------------------------------------------
 
-elif page == "📋 Детальная информация":
+elif page == "Детальная информация":
     st.subheader("Детальная информация о товарах")
 
     details = fetch_product_details()
@@ -358,7 +447,7 @@ elif page == "📋 Детальная информация":
 # Page: Графики
 # ---------------------------------------------------------------------------
 
-elif page == "📈 Графики":
+elif page == "Графики":
     prices_raw = fetch_prices()
     df_all = pd.DataFrame(prices_raw) if prices_raw else pd.DataFrame()
     df_all = df_all[df_all["source_site"].isin(selected_sites)] if not df_all.empty else df_all
@@ -501,7 +590,7 @@ elif page == "📈 Графики":
 # Page: Изменения
 # ---------------------------------------------------------------------------
 
-elif page == "🔄 Изменения":
+elif page == "Изменения":
     st.subheader("Изменения в ассортименте и ценах")
 
     try:
@@ -590,7 +679,7 @@ elif page == "🔄 Изменения":
 # Page: Логи
 # ---------------------------------------------------------------------------
 
-elif page == "⚙️ Логи":
+elif page == "Логи":
     st.subheader("Журнал запусков парсинга")
 
     runs_data = fetch_runs()
