@@ -259,11 +259,11 @@ if page == "Каталог":
             )
         with f2:
             # Date selectbox with available dates instead of date_input
-            catalog_date_options = ["Все даты"] + available_dates
+            catalog_date_options = available_dates + ["Все даты"]
             catalog_date_sel = st.selectbox(
-                "Дата (от)",
+                "Дата",
                 options=catalog_date_options,
-                index=0,
+                index=0,  # newest date first
                 key="catalog_date",
             )
         with f3:
@@ -276,8 +276,8 @@ if page == "Каталог":
             df = df[df["name"].str.contains(search, case=False, na=False)]
         if catalog_date_sel != "Все даты":
             df["_dt"] = pd.to_datetime(df["scraped_at"], format="mixed", utc=True)
-            filter_date = pd.Timestamp(catalog_date_sel, tz="UTC")
-            df = df[df["_dt"].dt.date >= filter_date.date()]
+            filter_date = pd.Timestamp(catalog_date_sel).date()
+            df = df[df["_dt"].dt.date == filter_date]
             df = df.drop(columns=["_dt"])
 
         # Prepare display
