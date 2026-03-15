@@ -116,6 +116,12 @@ def fetch_changes() -> dict:
     return requests.get(f"{API_BASE}/products/changes", timeout=30).json()
 
 
+@st.cache_data(ttl=60)
+def fetch_available_dates() -> list[str]:
+    """Fetch distinct scraped_at dates from /api/dates, newest first."""
+    return requests.get(f"{API_BASE}/dates", timeout=30).json()
+
+
 def strip_html(val):
     return re.sub(r"<[^>]+>", "", val).strip() if val else val
 
@@ -169,6 +175,7 @@ try:
     freshness_data = fetch_freshness()
     index_data = fetch_price_index()
     all_prices = fetch_prices()
+    available_dates = fetch_available_dates()
 except requests.exceptions.ConnectionError:
     st.error("Не удалось подключиться к API. Запустите сервер: `uvicorn lineaf.main:app`")
     st.stop()
@@ -246,7 +253,14 @@ if page == "Каталог":
                 index=0,
             )
         with f2:
-            date_filter = st.date_input("Дата (от)", value=None, key="date_from")
+            # Date selectbox with available dates instead of date_input
+            catalog_date_options = ["Все даты"] + available_dates
+            catalog_date_sel = st.selectbox(
+                "Дата (от)",
+                options=catalog_date_options,
+                index=0,
+                key="catalog_date",
+            )
         with f3:
             search = st.text_input("Поиск по названию", "", key="catalog_search")
 
@@ -255,9 +269,10 @@ if page == "Каталог":
             df = df[df["source_site"] == rev[site_filter]]
         if search:
             df = df[df["name"].str.contains(search, case=False, na=False)]
-        if date_filter:
+        if catalog_date_sel != "Все даты":
             df["_dt"] = pd.to_datetime(df["scraped_at"], format="mixed", utc=True)
-            df = df[df["_dt"].dt.date >= date_filter]
+            filter_date = pd.Timestamp(catalog_date_sel, tz="UTC")
+            df = df[df["_dt"].dt.date >= filter_date.date()]
             df = df.drop(columns=["_dt"])
 
         # Prepare display
@@ -324,6 +339,27 @@ if page == "Каталог":
 elif page == "Графики":
     df_chart = df_all_prices[df_all_prices["source_site"].isin(selected_sites)].copy() if not df_all_prices.empty else pd.DataFrame()
 
+    # Date range selectboxes for filtering chart data
+    if available_dates:
+        dr1, dr2 = st.columns(2)
+        with dr1:
+            chart_date_from = st.selectbox(
+                "Дата от",
+                options=available_dates,
+                index=len(available_dates) - 1,  # oldest
+                key="chart_date_from",
+            )
+        with dr2:
+            chart_date_to = st.selectbox(
+                "Дата до",
+                options=available_dates,
+                index=0,  # newest
+                key="chart_date_to",
+            )
+    else:
+        chart_date_from = None
+        chart_date_to = None
+
     # --- Динамика цен ---
     st.subheader("Динамика цен")
 
@@ -338,11 +374,21 @@ elif page == "Графики":
             if pid:
                 h = fetch_price_history(pid)
                 if h:
-                    fig = px.line(pd.DataFrame(h), x="scraped_at", y="price_sale",
-                                 labels={"scraped_at": "Дата", "price_sale": "Цена (₽)"},
-                                 title="Динамика цены")
-                    fig.update_layout(template="plotly_white")
-                    st.plotly_chart(fig, use_container_width=True)
+                    df_h = pd.DataFrame(h)
+                    df_h["scraped_at"] = pd.to_datetime(df_h["scraped_at"], format="mixed", utc=True)
+                    # Apply date range filter
+                    if chart_date_from:
+                        df_h = df_h[df_h["scraped_at"].dt.date >= pd.Timestamp(chart_date_from).date()]
+                    if chart_date_to:
+                        df_h = df_h[df_h["scraped_at"].dt.date <= pd.Timestamp(chart_date_to).date()]
+                    if not df_h.empty:
+                        fig = px.line(df_h, x="scraped_at", y="price_sale",
+                                     labels={"scraped_at": "Дата", "price_sale": "Цена (₽)"},
+                                     title="Динамика цены")
+                        fig.update_layout(template="plotly_white")
+                        st.plotly_chart(fig, use_container_width=True)
+                    else:
+                        st.info("Нет данных за выбранный период.")
                 else:
                     st.info("Данные появятся после повторного парсинга.")
         else:
@@ -355,11 +401,18 @@ elif page == "Графики":
                         item["name"] = r["name"]
                         rows.append(item)
                 if rows:
-                    fig = px.line(pd.DataFrame(rows), x="scraped_at", y="price_sale", color="name",
-                                 title=f"Динамика — {SITE_NAMES[site]}",
-                                 labels={"scraped_at": "Дата", "price_sale": "Цена (₽)", "name": "Товар"})
-                    fig.update_layout(template="plotly_white")
-                    st.plotly_chart(fig, use_container_width=True)
+                    df_rows = pd.DataFrame(rows)
+                    df_rows["scraped_at"] = pd.to_datetime(df_rows["scraped_at"], format="mixed", utc=True)
+                    if chart_date_from:
+                        df_rows = df_rows[df_rows["scraped_at"].dt.date >= pd.Timestamp(chart_date_from).date()]
+                    if chart_date_to:
+                        df_rows = df_rows[df_rows["scraped_at"].dt.date <= pd.Timestamp(chart_date_to).date()]
+                    if not df_rows.empty:
+                        fig = px.line(df_rows, x="scraped_at", y="price_sale", color="name",
+                                     title=f"Динамика — {SITE_NAMES[site]}",
+                                     labels={"scraped_at": "Дата", "price_sale": "Цена (₽)", "name": "Товар"})
+                        fig.update_layout(template="plotly_white")
+                        st.plotly_chart(fig, use_container_width=True)
 
     st.divider()
 
@@ -375,18 +428,66 @@ elif page == "Графики":
             df_cmp = df_chart.copy()
 
         if not df_cmp.empty:
-            # Line chart grouped by site and date for future multi-snapshot support
-            df_cmp["date"] = pd.to_datetime(df_cmp["scraped_at"], format="mixed", utc=True).dt.date
-            avg = df_cmp.groupby(["source_site", "date"])["price_sale"].mean().reset_index()
-            avg["source_site"] = avg["source_site"].map(SITE_NAMES)
+            # Build full history for avg price chart
+            avg_rows = []
+            for _, row in df_cmp.iterrows():
+                for item in fetch_price_history(row["product_id"]):
+                    item["source_site"] = row["source_site"]
+                    avg_rows.append(item)
 
-            fig = px.line(avg, x="date", y="price_sale", color="source_site",
-                          color_discrete_map=SITE_COLORS,
-                          title="Средняя цена (динамика по датам сбора)",
-                          labels={"date": "Дата", "price_sale": "Средняя цена (₽)", "source_site": "Конкурент"},
-                          markers=True)
-            fig.update_layout(template="plotly_white")
-            st.plotly_chart(fig, use_container_width=True)
+            if avg_rows:
+                df_avg_full = pd.DataFrame(avg_rows)
+                df_avg_full["scraped_at"] = pd.to_datetime(df_avg_full["scraped_at"], format="mixed", utc=True)
+                df_avg_full["date"] = df_avg_full["scraped_at"].dt.date
+
+                # Apply date range filter
+                if chart_date_from:
+                    df_avg_full = df_avg_full[df_avg_full["date"] >= pd.Timestamp(chart_date_from).date()]
+                if chart_date_to:
+                    df_avg_full = df_avg_full[df_avg_full["date"] <= pd.Timestamp(chart_date_to).date()]
+
+                if not df_avg_full.empty:
+                    avg = df_avg_full.groupby(["source_site", "date"])["price_sale"].mean().reset_index()
+                    avg["source_site"] = avg["source_site"].map(SITE_NAMES)
+
+                    fig = px.line(avg, x="date", y="price_sale", color="source_site",
+                                  color_discrete_map=SITE_COLORS,
+                                  title="Средняя цена (динамика по датам сбора)",
+                                  labels={"date": "Дата", "price_sale": "Средняя цена (₽)", "source_site": "Конкурент"},
+                                  markers=True)
+                    fig.update_layout(template="plotly_white")
+                    st.plotly_chart(fig, use_container_width=True)
+
+                    # Summary table: average price growth % per competitor between selected dates
+                    dates_in_data = sorted(avg["date"].unique())
+                    if len(dates_in_data) >= 2:
+                        first_date = dates_in_data[0]
+                        last_date = dates_in_data[-1]
+                        avg_first = avg[avg["date"] == first_date].set_index("source_site")["price_sale"]
+                        avg_last = avg[avg["date"] == last_date].set_index("source_site")["price_sale"]
+                        growth_rows = []
+                        for site_name in avg["source_site"].unique():
+                            if site_name in avg_first.index and site_name in avg_last.index:
+                                p0 = avg_first[site_name]
+                                p1 = avg_last[site_name]
+                                pct = ((p1 - p0) / p0) * 100 if p0 else 0
+                                growth_rows.append({
+                                    "Конкурент": site_name,
+                                    f"Ср. цена ({first_date})": round(p0, 0),
+                                    f"Ср. цена ({last_date})": round(p1, 0),
+                                    "Рост %": round(pct, 1),
+                                })
+                        if growth_rows:
+                            st.markdown("**Рост средней цены за период**")
+                            df_growth = pd.DataFrame(growth_rows)
+                            st.dataframe(
+                                df_growth,
+                                use_container_width=True,
+                                hide_index=True,
+                                column_config={
+                                    "Рост %": st.column_config.NumberColumn(format="%+.1f%%"),
+                                },
+                            )
 
     st.divider()
 
@@ -415,58 +516,122 @@ elif page == "Графики":
 elif page == "Изменения":
     st.subheader("Изменения в ассортименте и ценах")
 
-    try:
-        changes = fetch_changes()
-    except Exception:
-        changes = {"new": [], "removed": []}
+    # Date selectors for comparison
+    if len(available_dates) >= 2:
+        d1, d2 = st.columns(2)
+        with d1:
+            date1_sel = st.selectbox(
+                "Дата 1 (ранняя)",
+                options=available_dates,
+                index=min(1, len(available_dates) - 1),  # second newest = earlier
+                key="changes_date1",
+            )
+        with d2:
+            date2_sel = st.selectbox(
+                "Дата 2 (поздняя)",
+                options=available_dates,
+                index=0,  # newest
+                key="changes_date2",
+            )
+    elif len(available_dates) == 1:
+        st.info("Только одна дата с данными. Сравнение появится после второго парсинга.")
+        date1_sel = available_dates[0]
+        date2_sel = available_dates[0]
+    else:
+        st.info("Нет данных для сравнения.")
+        st.stop()
 
-    c1, c2 = st.columns(2)
-    with c1:
-        st.markdown("**Новые товары**")
-        new_p = changes.get("new", [])
-        if new_p:
-            df_n = pd.DataFrame(new_p)
-            if "source_site" in df_n.columns:
-                df_n["source_site"] = df_n["source_site"].map(SITE_NAMES)
-            df_n = df_n.rename(columns={"name": "Название", "source_site": "Конкурент"})
-            st.dataframe(df_n, use_container_width=True, hide_index=True)
-        else:
-            st.info("Нет новых товаров")
+    # Ensure date1 <= date2
+    if date1_sel > date2_sel:
+        date1_sel, date2_sel = date2_sel, date1_sel
 
-    with c2:
-        st.markdown("**Удалённые товары**")
-        rem_p = changes.get("removed", [])
-        if rem_p:
-            df_r = pd.DataFrame(rem_p)
-            if "source_site" in df_r.columns:
-                df_r["source_site"] = df_r["source_site"].map(SITE_NAMES)
-            df_r = df_r.rename(columns={"name": "Название", "source_site": "Конкурент"})
-            st.dataframe(df_r, use_container_width=True, hide_index=True)
-        else:
-            st.info("Нет удалённых товаров")
-
-    st.divider()
-    st.markdown("**Изменения цен**")
-    st.caption("Сравнение цен между последними двумя парсингами. Появится после второго запуска.")
-
+    # Build snapshots for both dates from price history
     if all_prices:
         df_p = pd.DataFrame(all_prices)
         df_p = df_p[df_p["source_site"].isin(selected_sites)]
+
+        date1_products: dict[int, dict] = {}
+        date2_products: dict[int, dict] = {}
         change_rows = []
+
         for _, row in df_p.iterrows():
-            hist = fetch_price_history(row["product_id"])
-            if len(hist) >= 2:
-                prev_price = hist[-2].get("price_sale", 0) or 0
-                curr_price = hist[-1].get("price_sale", 0) or 0
-                if prev_price and prev_price != curr_price:
-                    pct = ((curr_price - prev_price) / prev_price) * 100
-                    change_rows.append({
-                        "Название": row["name"],
-                        "Конкурент": SITE_NAMES.get(row["source_site"], row["source_site"]),
-                        "Была": prev_price,
-                        "Стала": curr_price,
-                        "Изменение %": pct,
-                    })
+            pid = row["product_id"]
+            hist = fetch_price_history(pid)
+            if not hist:
+                continue
+
+            df_hist = pd.DataFrame(hist)
+            df_hist["scraped_at"] = pd.to_datetime(df_hist["scraped_at"], format="mixed", utc=True)
+            df_hist["date_str"] = df_hist["scraped_at"].dt.date.astype(str)
+
+            # Get snapshot for date1
+            snap1 = df_hist[df_hist["date_str"] == date1_sel]
+            if not snap1.empty:
+                date1_products[pid] = {
+                    "name": row["name"],
+                    "source_site": row["source_site"],
+                    "price_sale": snap1.iloc[-1]["price_sale"],
+                }
+
+            # Get snapshot for date2
+            snap2 = df_hist[df_hist["date_str"] == date2_sel]
+            if not snap2.empty:
+                date2_products[pid] = {
+                    "name": row["name"],
+                    "source_site": row["source_site"],
+                    "price_sale": snap2.iloc[-1]["price_sale"],
+                }
+
+        # New products: in date2 but not in date1
+        new_pids = set(date2_products.keys()) - set(date1_products.keys())
+        new_items = [
+            {"Название": date2_products[pid]["name"],
+             "Конкурент": SITE_NAMES.get(date2_products[pid]["source_site"], date2_products[pid]["source_site"])}
+            for pid in new_pids
+        ]
+
+        # Removed products: in date1 but not in date2
+        removed_pids = set(date1_products.keys()) - set(date2_products.keys())
+        removed_items = [
+            {"Название": date1_products[pid]["name"],
+             "Конкурент": SITE_NAMES.get(date1_products[pid]["source_site"], date1_products[pid]["source_site"])}
+            for pid in removed_pids
+        ]
+
+        c1, c2 = st.columns(2)
+        with c1:
+            st.markdown("**Новые товары**")
+            if new_items:
+                st.dataframe(pd.DataFrame(new_items), use_container_width=True, hide_index=True)
+            else:
+                st.info("Нет новых товаров")
+
+        with c2:
+            st.markdown("**Удалённые товары**")
+            if removed_items:
+                st.dataframe(pd.DataFrame(removed_items), use_container_width=True, hide_index=True)
+            else:
+                st.info("Нет удалённых товаров")
+
+        st.divider()
+        st.markdown("**Изменения цен**")
+        st.caption(f"Сравнение цен между {date1_sel} и {date2_sel}")
+
+        # Price changes: products in both dates with different prices
+        common_pids = set(date1_products.keys()) & set(date2_products.keys())
+        for pid in common_pids:
+            prev_price = date1_products[pid]["price_sale"] or 0
+            curr_price = date2_products[pid]["price_sale"] or 0
+            if prev_price and prev_price != curr_price:
+                pct = ((curr_price - prev_price) / prev_price) * 100
+                change_rows.append({
+                    "Название": date1_products[pid]["name"],
+                    "Конкурент": SITE_NAMES.get(date1_products[pid]["source_site"], date1_products[pid]["source_site"]),
+                    "Была": prev_price,
+                    "Стала": curr_price,
+                    "Изменение %": pct,
+                })
+
         if change_rows:
             df_ch = pd.DataFrame(change_rows)
             st.dataframe(df_ch, use_container_width=True, hide_index=True,
@@ -475,6 +640,8 @@ elif page == "Изменения":
                              "Стала": st.column_config.NumberColumn(format="%.0f ₽"),
                              "Изменение %": st.column_config.NumberColumn(format="%+.1f%%"),
                          })
+        else:
+            st.info("Нет изменений цен между выбранными датами")
 
 # ---------------------------------------------------------------------------
 # Page: Логи

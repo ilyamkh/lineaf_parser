@@ -58,6 +58,17 @@ def _row_to_dict(product: Product, snap: PriceSnapshot) -> dict:
     }
 
 
+@router.get("/dates")
+def get_available_dates(db: Session = Depends(get_db)):
+    """Return distinct scraped_at dates (date part only), newest first."""
+    rows = (
+        db.query(func.distinct(func.date(PriceSnapshot.scraped_at)).label("d"))
+        .order_by(func.date(PriceSnapshot.scraped_at).desc())
+        .all()
+    )
+    return [str(r.d) for r in rows if r.d is not None]
+
+
 @router.get("/prices")
 def get_prices(
     site: Optional[str] = Query(None),
