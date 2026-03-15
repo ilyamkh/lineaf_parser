@@ -3,14 +3,14 @@ gsd_state_version: 1.0
 milestone: v1.0
 milestone_name: milestone
 status: completed
-stopped_at: Phase 3 context gathered
-last_updated: "2026-03-15T04:58:22.116Z"
+stopped_at: Completed 03-02-PLAN.md
+last_updated: "2026-03-15T05:19:44.208Z"
 last_activity: 2026-03-14 — Completed Plan 02-04 (Ormatek Spider)
 progress:
   total_phases: 3
   completed_phases: 2
-  total_plans: 6
-  completed_plans: 6
+  total_plans: 9
+  completed_plans: 7
   percent: 100
 ---
 
@@ -21,14 +21,14 @@ progress:
 See: .planning/PROJECT.md (updated 2026-03-14)
 
 **Core value:** Команда Lineaf в любой момент видит актуальные цены конкурентов и их динамику для принятия решений по ценообразованию.
-**Current focus:** Phase 2 — Scrapers (Complete)
+**Current focus:** Phase 3 — Dashboard (In Progress)
 
 ## Current Position
 
-Phase: 2 of 3 (Scrapers) -- COMPLETE
-Plan: 4 of 4 in current phase -- COMPLETE
-Status: Phase 2 Complete
-Last activity: 2026-03-14 — Completed Plan 02-04 (Ormatek Spider)
+Phase: 3 of 3 (Dashboard)
+Plan: 2 of 3 in current phase
+Status: In Progress
+Last activity: 2026-03-15 — Completed Plan 03-02 (Scheduler)
 
 Progress: [██████████] 100%
 
@@ -56,6 +56,7 @@ Progress: [██████████] 100%
 | Phase 02-scrapers P02 | 3 min | 2 tasks | 2 files |
 | Phase 02-scrapers P03 | 2 | 2 tasks | 2 files |
 | Phase 02-scrapers P04 | 3 min | 3 tasks | 3 files |
+| Phase 03-dashboard P02 | 2 min | 2 tasks | 6 files |
 
 ## Accumulated Context
 
@@ -79,6 +80,8 @@ Recent decisions affecting current work:
 - [Phase 02-03]: Multiple fallback CSS selectors for uncertain DOM structure (3-5 selectors per element type)
 - [Phase 02-04]: Ormatek returns 403 from datacenter IPs -- best-guess selectors implemented, deferred live validation to VPN/proxy setup
 - [Phase 02-04]: parse_ormatek_characteristics as module-level pure function for testability (consistent with Sonum pattern)
+- [Phase 03-dashboard]: BackgroundScheduler (not AsyncIOScheduler) to avoid asyncio.run() conflicts with scrapers
+- [Phase 03-dashboard]: Daemon thread for POST /scrape instead of FastAPI BackgroundTasks to avoid blocking worker pool
 
 ### Pending Todos
 
@@ -91,6 +94,6 @@ None yet.
 
 ## Session Continuity
 
-Last session: 2026-03-15T04:58:22.114Z
-Stopped at: Phase 3 context gathered
-Resume file: .planning/phases/03-dashboard/03-CONTEXT.md
+Last session: 2026-03-15T05:19:44.207Z
+Stopped at: Completed 03-02-PLAN.md
+Resume file: None

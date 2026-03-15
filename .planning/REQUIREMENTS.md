@@ -35,8 +35,8 @@ Requirements for initial release. Each maps to roadmap phases.
 
 ### Scheduling
 
-- [ ] **SCHD-01**: Парсер запускается автоматически раз в неделю по расписанию
-- [ ] **SCHD-02**: Лог успешных/неуспешных запусков доступен в дашборде
+- [x] **SCHD-01**: Парсер запускается автоматически раз в неделю по расписанию
+- [x] **SCHD-02**: Лог успешных/неуспешных запусков доступен в дашборде
 
 ## v2 Requirements
 
@@ -90,8 +90,8 @@ Deferred to future release. Tracked but not in current roadmap.
 | DASH-04 | Phase 3 | Pending |
 | DASH-05 | Phase 3 | Pending |
 | DASH-06 | Phase 3 | Pending |
-| SCHD-01 | Phase 3 | Pending |
-| SCHD-02 | Phase 3 | Pending |
+| SCHD-01 | Phase 3 | Complete |
+| SCHD-02 | Phase 3 | Complete |
 
 **Coverage:**
 - v1 requirements: 19 total
