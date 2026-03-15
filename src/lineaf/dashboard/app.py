@@ -97,6 +97,11 @@ def fetch_price_history(product_id: int) -> list[dict]:
 
 
 @st.cache_data(ttl=60)
+def fetch_all_products() -> list[dict]:
+    return requests.get(f"{API_BASE}/products/all", timeout=30).json()
+
+
+@st.cache_data(ttl=60)
 def fetch_price_index() -> list[dict]:
     return requests.get(f"{API_BASE}/prices/index", timeout=30).json()
 
@@ -419,16 +424,20 @@ elif page == "Графики":
     # --- Средние цены (линейный график для динамики) ---
     st.subheader("Средние цены конкурентов")
 
-    if not df_chart.empty:
+    # Use ALL products (active + inactive) for full historical coverage
+    all_prods = fetch_all_products()
+    df_all_prods = pd.DataFrame(all_prods) if all_prods else pd.DataFrame()
+
+    if not df_all_prods.empty:
         cmp_mode = st.radio("Показать", ["Все конкуренты", "Выбрать конкурента"], horizontal=True, key="cmp_mode")
         if cmp_mode == "Выбрать конкурента":
             cmp_site = st.selectbox("Конкурент", selected_sites, format_func=lambda s: SITE_NAMES[s], key="cmp_site")
-            df_cmp = df_chart[df_chart["source_site"] == cmp_site].copy()
+            df_cmp = df_all_prods[df_all_prods["source_site"] == cmp_site].copy()
         else:
-            df_cmp = df_chart.copy()
+            df_cmp = df_all_prods[df_all_prods["source_site"].isin(selected_sites)].copy()
 
         if not df_cmp.empty:
-            # Build full history for avg price chart
+            # Build full history for avg price chart from ALL products
             avg_rows = []
             for _, row in df_cmp.iterrows():
                 for item in fetch_price_history(row["product_id"]):
@@ -545,10 +554,14 @@ elif page == "Изменения":
     if date1_sel > date2_sel:
         date1_sel, date2_sel = date2_sel, date1_sel
 
-    # Build snapshots for both dates from price history
-    if all_prices:
-        df_p = pd.DataFrame(all_prices)
+    # Build snapshots using ALL products (active + inactive) in the date interval
+    all_prods_changes = fetch_all_products()
+    if all_prods_changes:
+        df_p = pd.DataFrame(all_prods_changes)
         df_p = df_p[df_p["source_site"].isin(selected_sites)]
+
+        d1_date = pd.Timestamp(date1_sel).date()
+        d2_date = pd.Timestamp(date2_sel).date()
 
         date1_products: dict[int, dict] = {}
         date2_products: dict[int, dict] = {}
@@ -562,10 +575,10 @@ elif page == "Изменения":
 
             df_hist = pd.DataFrame(hist)
             df_hist["scraped_at"] = pd.to_datetime(df_hist["scraped_at"], format="mixed", utc=True)
-            df_hist["date_str"] = df_hist["scraped_at"].dt.date.astype(str)
+            df_hist["dt_date"] = df_hist["scraped_at"].dt.date
 
-            # Get snapshot for date1
-            snap1 = df_hist[df_hist["date_str"] == date1_sel]
+            # Get closest snapshot <= date1 (within interval)
+            snap1 = df_hist[df_hist["dt_date"] <= d1_date].sort_values("scraped_at")
             if not snap1.empty:
                 date1_products[pid] = {
                     "name": row["name"],
@@ -573,8 +586,8 @@ elif page == "Изменения":
                     "price_sale": snap1.iloc[-1]["price_sale"],
                 }
 
-            # Get snapshot for date2
-            snap2 = df_hist[df_hist["date_str"] == date2_sel]
+            # Get closest snapshot <= date2 (within interval)
+            snap2 = df_hist[df_hist["dt_date"] <= d2_date].sort_values("scraped_at")
             if not snap2.empty:
                 date2_products[pid] = {
                     "name": row["name"],

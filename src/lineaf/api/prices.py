@@ -79,6 +79,21 @@ def get_prices(
     return [_row_to_dict(p, s) for p, s in rows]
 
 
+@router.get("/products/all")
+def get_all_products(db: Session = Depends(get_db)):
+    """Return all products (active + inactive) with their site info."""
+    products = db.query(Product).all()
+    return [
+        {
+            "product_id": p.id,
+            "name": p.name,
+            "source_site": p.source_site,
+            "is_active": p.is_active,
+        }
+        for p in products
+    ]
+
+
 @router.get("/prices/history")
 def get_price_history(
     product_id: int = Query(...),
