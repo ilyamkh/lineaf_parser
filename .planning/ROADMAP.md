@@ -61,12 +61,12 @@ Plans:
   3. The dashboard shows a list of products that appeared or disappeared since the last scrape run
   4. Clicking "Export" downloads a CSV/Excel file containing all current price data
   5. The scraper runs automatically every week without manual triggering; the run log (success/failure, item count) is visible in the dashboard
-**Plans**: TBD
+**Plans**: 3 plans
 
 Plans:
-- [ ] 03-01: FastAPI backend (/api/prices, /api/products, /api/runs endpoints with filtering)
-- [ ] 03-02: Streamlit dashboard (competitor table, price history charts, freshness indicator, new/removed list, export)
-- [ ] 03-03: APScheduler weekly cron + deployment config (systemd or docker-compose for VM)
+- [ ] 03-01-PLAN.md — FastAPI API endpoints (prices, export, runs, freshness, product changes) + test suite
+- [ ] 03-02-PLAN.md — APScheduler weekly cron + manual scrape trigger endpoint
+- [ ] 03-03-PLAN.md — Streamlit dashboard (4 tabs: prices table, charts, changes, run log) + visual verification
 
 ## Progress
 
