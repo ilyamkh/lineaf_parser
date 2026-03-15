@@ -7,6 +7,7 @@ from decimal import Decimal
 import pytest
 from sqlalchemy import create_engine
 from sqlalchemy.orm import Session
+from sqlalchemy.pool import StaticPool
 
 from lineaf.models import Base, Product, PriceSnapshot, ScrapeRun
 
@@ -16,7 +17,14 @@ from lineaf.models import Base, Product, PriceSnapshot, ScrapeRun
 
 TEST_DATABASE_URL = os.environ.get("TEST_DATABASE_URL", "sqlite:///:memory:")
 
-engine = create_engine(TEST_DATABASE_URL, echo=False)
+# StaticPool keeps a single connection for in-memory SQLite so all sessions
+# share the same database (otherwise each connection gets a fresh empty DB).
+engine = create_engine(
+    TEST_DATABASE_URL,
+    echo=False,
+    connect_args={"check_same_thread": False},
+    poolclass=StaticPool,
+)
 Base.metadata.create_all(engine)
 
 from fastapi.testclient import TestClient  # noqa: E402
