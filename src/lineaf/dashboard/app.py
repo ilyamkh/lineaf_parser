@@ -256,7 +256,7 @@ if page == "Каталог":
         if search:
             df = df[df["name"].str.contains(search, case=False, na=False)]
         if date_filter:
-            df["_dt"] = pd.to_datetime(df["scraped_at"])
+            df["_dt"] = pd.to_datetime(df["scraped_at"], format="mixed", utc=True)
             df = df[df["_dt"].dt.date >= date_filter]
             df = df.drop(columns=["_dt"])
 
@@ -264,7 +264,7 @@ if page == "Каталог":
         df_d = df.copy()
         df_d["source_site"] = df_d["source_site"].map(SITE_NAMES)
         if "scraped_at" in df_d.columns:
-            df_d["scraped_at"] = pd.to_datetime(df_d["scraped_at"]).dt.strftime("%d.%m.%Y")
+            df_d["scraped_at"] = pd.to_datetime(df_d["scraped_at"], format="mixed", utc=True).dt.strftime("%d.%m.%Y")
 
         df_d = df_d.rename(columns={
             "name": "Название",
@@ -376,7 +376,7 @@ elif page == "Графики":
 
         if not df_cmp.empty:
             # Line chart grouped by site and date for future multi-snapshot support
-            df_cmp["date"] = pd.to_datetime(df_cmp["scraped_at"]).dt.date
+            df_cmp["date"] = pd.to_datetime(df_cmp["scraped_at"], format="mixed", utc=True).dt.date
             avg = df_cmp.groupby(["source_site", "date"])["price_sale"].mean().reset_index()
             avg["source_site"] = avg["source_site"].map(SITE_NAMES)
 
@@ -490,7 +490,7 @@ elif page == "Логи":
             df_r["site"] = df_r["site"].map(SITE_NAMES)
         for dc in ["started_at", "finished_at"]:
             if dc in df_r.columns:
-                df_r[dc] = pd.to_datetime(df_r[dc]).dt.strftime("%d.%m.%Y %H:%M")
+                df_r[dc] = pd.to_datetime(df_r[dc], format="mixed", utc=True).dt.strftime("%d.%m.%Y %H:%M")
         df_r = df_r.rename(columns={
             "id": "ID", "site": "Конкурент", "status": "Статус",
             "started_at": "Начало", "finished_at": "Конец",
