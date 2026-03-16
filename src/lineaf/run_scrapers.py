@@ -56,18 +56,22 @@ def main(sites: list[str] | None = None) -> None:
                 logger.info("ormatek: launching via undetected_chromedriver (Python 3.11)")
                 import shutil
                 uv_bin = shutil.which("uv") or str(__import__("pathlib").Path.home() / ".local/bin/uv")
+                uv_cmd = [
+                    uv_bin, "run", "--python", "3.11",
+                    "--with", "undetected-chromedriver",
+                    "--with", "selenium",
+                    "--with", "sqlalchemy",
+                    "--with", "psycopg2-binary",
+                    "--with", "pydantic-settings",
+                    "--with", "python-dotenv",
+                    "--no-project",
+                    "python", "src/lineaf/scrapers/ormatek_uc.py",
+                ]
+                # On Linux servers, Chrome needs a virtual display (xvfb-run)
+                xvfb = shutil.which("xvfb-run")
+                cmd = [xvfb] + uv_cmd if xvfb else uv_cmd
                 result = subprocess.run(
-                    [
-                        uv_bin, "run", "--python", "3.11",
-                        "--with", "undetected-chromedriver",
-                        "--with", "selenium",
-                        "--with", "sqlalchemy",
-                        "--with", "psycopg2-binary",
-                        "--with", "pydantic-settings",
-                        "--with", "python-dotenv",
-                        "--no-project",
-                        "python", "src/lineaf/scrapers/ormatek_uc.py",
-                    ],
+                    cmd,
                     cwd=str(__import__("pathlib").Path(__file__).resolve().parents[2]),
                     capture_output=False,
                     timeout=600,
